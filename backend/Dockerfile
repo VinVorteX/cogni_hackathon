@@ -26,6 +26,10 @@ COPY evaluation ./evaluation
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-EXPOSE 8000
+# Pre-build the FAISS + BM25 index at image build time so the container starts
+# instantly on Cloud Run (no embedding work at runtime).
+RUN python -m scripts.preprocess && python -m scripts.build_index
+
+EXPOSE 8080
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -7,13 +7,11 @@ function Field({ label, value }) {
   const muted = !value || value === NOT_DOCUMENTED;
   return (
     <div className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-[#6e7681]">{label}</p>
       <Expandable
         text={value}
         clampClass="line-clamp-5"
-        className={`mt-0.5 text-sm ${muted ? "italic text-slate-400" : "text-slate-700"}`}
+        className={`mt-0.5 text-xs ${muted ? "italic text-[#6e7681]" : "text-[#c9d1d9]"}`}
       />
     </div>
   );
@@ -21,22 +19,14 @@ function Field({ label, value }) {
 
 export function IncidentCard({ incident, cited = false }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 p-4 transition hover:border-slate-300">
+    <div className="overflow-hidden rounded-lg border border-[#30363d] bg-[#161b22] p-4 transition hover:border-[#6e7681]">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-mono text-sm font-semibold text-slate-900">
-            {incident.ticket_id}
-          </span>
-          {cited && (
-            <Badge color="indigo" className="shrink-0">
-              Cited by AI
-            </Badge>
-          )}
+          <span className="truncate text-sm font-bold text-cyan-400">{incident.ticket_id}</span>
+          {cited && <Badge color="indigo">Cited by AI</Badge>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden text-xs text-slate-400 sm:inline">
-            Similarity
-          </span>
+          <span className="hidden text-xs text-[#6e7681] sm:inline">similarity</span>
           <SimilarityMeter value={incident.similarity} />
         </div>
       </div>
@@ -44,11 +34,11 @@ export function IncidentCard({ incident, cited = false }) {
       <Expandable
         text={incident.description}
         clampClass="line-clamp-3"
-        className="mt-2 text-sm text-slate-600"
+        className="mt-2 text-xs text-[#8b949e]"
       />
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <Field label="Root cause" value={incident.root_cause} />
+        <Field label="Root Cause" value={incident.root_cause} />
         <Field label="Resolution" value={incident.resolution} />
       </div>
     </div>

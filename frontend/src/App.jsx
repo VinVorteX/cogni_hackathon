@@ -59,20 +59,20 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#0d1117]">
       <Header
         right={
           <div className="flex items-center gap-3">
             <HealthIndicator status={backend.status} />
-            <span className="hidden text-sm text-slate-500 sm:inline">
+            <span className="hidden font-mono text-xs text-green-800 sm:inline">
               {auth.user?.name || auth.user?.email}
             </span>
             <button
               type="button"
               onClick={auth.logout}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50"
+              className="rounded-md border border-[#30363d] px-3 py-1.5 text-xs font-medium text-[#8b949e] transition hover:border-[#6e7681] hover:text-[#e6edf3]"
             >
-              Sign out
+              Logout
             </button>
           </div>
         }

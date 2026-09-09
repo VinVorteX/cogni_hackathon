@@ -7,8 +7,6 @@ export function IncidentForm({ value, onChange, onAnalyze, loading }) {
   const isEmpty = !value.trim();
   const [exampleIndex, setExampleIndex] = useState(0);
 
-  // Cycle through the verified examples on each click so the demo can show
-  // several different (grounded) incidents.
   const useNextExample = () => {
     onChange(EXAMPLE_INCIDENTS[exampleIndex % EXAMPLE_INCIDENTS.length]);
     setExampleIndex((i) => (i + 1) % EXAMPLE_INCIDENTS.length);
@@ -19,11 +17,8 @@ export function IncidentForm({ value, onChange, onAnalyze, loading }) {
       label="New Incident"
       title="Describe the Incident"
       actions={
-        <button
-          type="button"
-          onClick={useNextExample}
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-        >
+        <button type="button" onClick={useNextExample}
+          className="text-xs font-medium text-amber-400 hover:text-amber-300">
           Use example
         </button>
       }
@@ -34,12 +29,10 @@ export function IncidentForm({ value, onChange, onAnalyze, loading }) {
           onChange={(e) => onChange(e.target.value)}
           rows={8}
           placeholder="e.g. Kafka consumers stopped processing messages after a broker restart…"
-          className="w-full resize-y rounded-lg border border-slate-300 p-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+          className="w-full resize-y rounded-lg border border-[#30363d] bg-[#0d1117] p-3 text-sm text-[#e6edf3] placeholder:text-[#6e7681] focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
         />
         <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-400 tabular-nums">
-            {value.trim().length} characters
-          </p>
+          <p className="tabular-nums text-xs text-[#6e7681]">{value.trim().length} chars</p>
           <Button onClick={onAnalyze} loading={loading} disabled={isEmpty || loading}>
             Analyze Incident
           </Button>
