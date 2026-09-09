@@ -1,9 +1,12 @@
 // All backend communication lives here. The frontend never holds the Groq key —
 // analysis happens server-side; this module only calls the backend HTTP API.
 
-// Backend base URL is configured via the VITE_API_BASE_URL environment
-// variable. Empty (default) means "use the Vite dev proxy" (same-origin /api).
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://incident-rca-api-thamtf7d5a-uc.a.run.app";
+// Backend base URL: in development or when configured, talk to local backend;
+// in production default to deployed Cloud Run URL if not overridden.
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL !== undefined && import.meta.env.VITE_API_BASE_URL !== ""
+    ? import.meta.env.VITE_API_BASE_URL
+    : (import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://incident-rca-api-thamtf7d5a-uc.a.run.app");
 
 // --- auth token storage ------------------------------------------------------
 const TOKEN_KEY = "rca.auth.token";

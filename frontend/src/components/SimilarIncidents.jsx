@@ -14,7 +14,7 @@ export function SimilarIncidents({ analysis }) {
     <Section
       label="Historical Evidence"
       title="Similar Historical Incidents"
-      description="Actual records retrieved from the indexed dataset (FAISS search + rerank). These are facts, not model output — the AI analysis above is derived from them."
+      description="Actual records retrieved from the indexed dataset (FAISS semantic + BM25 keyword → RRF fusion → rerank). These are facts, not model output — the AI analysis above is derived from them."
       accent="slate"
       tag={<DataBadge />}
     >
