@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     # Override via GROQ_MODEL. Must be a chat model your key can access
     # (e.g. openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.6-27b).
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
     llm_temperature: float = 0.0
     # Keep retries low — on the free tier each 429 retry waits the full
     # Retry-After window (up to 60 s), so 6 retries = potential 6-minute hang.

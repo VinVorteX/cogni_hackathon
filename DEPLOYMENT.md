@@ -57,9 +57,9 @@ docker compose up --build          # add -d to run detached
 #    http://localhost:8080
 ```
 
-On **first start** the backend builds the FAISS index from `data/raw/incidents.csv`
-into the mounted volume (one-time, ~1–2 min; no network needed — the model is
-baked into the image). Later starts reuse the persisted index.
+On **first start** the entrypoint checks for the FAISS index — it is already
+baked into the image at build time, so startup is instant. The check is a
+fallback for local dev with a mounted volume that overrides the image's data.
 
 Useful commands:
 
@@ -77,8 +77,8 @@ Backend env comes from `backend/.env` (loaded via compose `env_file`):
 |---|---|
 | `GROQ_API_KEY` | **required** for RCA |
 | `JWT_SECRET` | **set a long random value in production** (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
-| `GROQ_MODEL` | default `openai/gpt-oss-120b` |
-| `GROQ_MAX_RETRIES` | default `6` (rides out free-tier 429s) |
+| `GROQ_MODEL` | default `openai/gpt-oss-20b` |
+| `GROQ_MAX_RETRIES` | default `2` |
 | `DATABASE_URL` | set by compose to Postgres (`postgresql://rca:rca@db:5432/rca`); unset → SQLite fallback |
 
 Persisted state: the FAISS index in `./backend/data/` (bind-mounted) and **user
@@ -114,14 +114,12 @@ This compose setup runs unchanged on a single VM:
 ## B. Google Cloud Run
 
 Cloud Run runs the backend container, scales to zero when idle (generous free
-tier), and injects a `PORT` the root [Dockerfile](Dockerfile) already respects —
-so **no changes are needed**. Unlike HF's git, Cloud Build just uploads the build
-context, so the 35 MB dataset needs no Git LFS.
+tier). The FAISS index and embedding model are baked into the image at build
+time, so containers start instantly with no runtime embedding work.
 
 ### Prerequisites
 - `gcloud` CLI installed and `gcloud auth login`
-- A GCP project with **billing enabled** (Cloud Run's free tier still requires a
-  billing account)
+- A GCP project with billing enabled
 
 ### One-time setup
 ```bash
@@ -132,24 +130,12 @@ gcloud config set builds/timeout 1800   # our build (~10 min) exceeds the 600s d
 
 ### Deploy backend
 
-Use the helper script (reads secrets from env vars, never CLI args):
-
-```bash
-export GROQ_API_KEY=<your_groq_api_key>
-export JWT_SECRET=<your_jwt_secret>
-export CORS_ORIGINS=https://incident-rca-frontend-719419392728.us-central1.run.app
-./deploy-cloudrun.sh rcaasda
-```
-
-Or manually:
-
 ```bash
 gcloud run deploy incident-rca-api \
   --source . \
   --region us-central1 \
   --memory 4Gi \
   --cpu 2 \
-  --timeout 300 \
   --allow-unauthenticated \
   --set-env-vars "GROQ_API_KEY=<your_groq_api_key>,JWT_SECRET=<your_jwt_secret>,CORS_ORIGINS=<frontend_url>"
 ```
@@ -173,39 +159,14 @@ The frontend has the backend URL hardcoded as a fallback in
 
 ### GitHub Actions CI/CD
 
-Automatic deploys are wired in `.github/workflows/`:
-
-- `deploy-backend.yml` — triggers on pushes to `main` that touch `backend/`,
-  `Dockerfile`, or `docker-entrypoint.sh`.
-- `deploy-frontend.yml` — triggers on pushes to `main` that touch `frontend/`.
-
-Required GitHub repository secrets:
-
-| Secret | Value |
-|---|---|
-| `GCP_SA_KEY` | Service account JSON key with `run.admin`, `storage.admin`, `artifactregistry.admin`, `iam.serviceAccountUser` roles |
-| `GROQ_API_KEY` | Your Groq API key |
-| `JWT_SECRET` | Long random string |
-| `CORS_ORIGINS` | Frontend Cloud Run URL |
-
-Create the service account once:
-
-```bash
-gcloud iam service-accounts create github-actions --project rcaasda
-for role in roles/run.admin roles/storage.admin roles/artifactregistry.admin roles/iam.serviceAccountUser; do
-  gcloud projects add-iam-policy-binding rcaasda \
-    --member "serviceAccount:github-actions@rcaasda.iam.gserviceaccount.com" \
-    --role "$role"
-done
-gcloud iam service-accounts keys create /tmp/gha-key.json \
-  --iam-account github-actions@rcaasda.iam.gserviceaccount.com
-# Paste the contents of /tmp/gha-key.json as the GCP_SA_KEY secret
-```
+Not included — deploy manually using the commands above.
 
 ### Notes
-- **Cold starts:** the image is ~9 GB (PyTorch), so the first request after idle
-  pulls the image + loads the model (~30–60 s). Add `--min-instances 1` to keep
-  one warm (small cost), or accept the cold start on the free tier.
+- **Cold starts:** the image is ~9 GB (PyTorch + baked FAISS index), so the first
+  request after idle may take ~30–60 s to pull the image. Add `--min-instances 1`
+  to keep one warm (small cost), or accept the cold start on the free tier.
+- **Index baked in:** `preprocess` + `build_index` run during `docker build`, so
+  the container starts instantly with no embedding work at runtime.
 - **Durable users:** Cloud Run's filesystem is ephemeral — set `DATABASE_URL` to
   a managed Postgres (Cloud SQL, Supabase, or Neon) so accounts persist across
   redeploys. Without it the backend uses SQLite which resets on each deploy.
