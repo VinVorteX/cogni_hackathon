@@ -257,7 +257,7 @@ def _score_alignment(
 
     return AlignmentScore(
         ticket_id=candidate.ticket_id,
-        similarity=float(candidate.similarity),
+        similarity=float(candidate.similarity) if candidate.similarity is not None else 0.0,
         component=component,
         symptom=symptom,
         mechanism=mechanism,
@@ -284,7 +284,10 @@ def evidence_check_node(state: RCAState) -> dict:
     query_symptoms = query_words & SYMPTOM_TERMS
     query_triggers = query_words & TRIGGER_TERMS
 
-    top_similarity = max(item.similarity for item in evidence)
+    top_similarity = max(
+        (item.similarity if item.similarity is not None else 0.0)
+        for item in evidence
+    )
 
     # Quick exit: if similarity is below threshold, nothing can align.
     if top_similarity < MIN_SIMILARITY:

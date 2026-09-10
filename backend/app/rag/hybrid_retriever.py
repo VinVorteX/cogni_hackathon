@@ -116,6 +116,8 @@ def hybrid_retrieve(
 
     Returns:
         A list of ``RetrievedIncident``, ordered by descending RRF score.
+        Each incident carries full retrieval metadata (FAISS cosine, BM25
+        score, per-source ranks, match type, and hybrid rank).
 
     Raises:
         TypeError: If ``query`` is not a string.
@@ -148,6 +150,18 @@ def hybrid_retrieve(
         # BM25 is supplementary — if it fails, fall back to FAISS-only.
         logger.warning("BM25 search failed, falling back to FAISS-only: %s", exc)
 
+    # ── Build per-source lookup dicts ────────────────────────────────────────
+    # These capture the raw retrieval metadata from each source so it can be
+    # attached to the fused results.  The reranker and API preserve these
+    # verbatim — they are never overwritten or recalculated downstream.
+    faiss_cosine: dict[str, float] = {r.ticket_id: r.score for r in faiss_results}
+    faiss_rank_map: dict[str, int] = {r.ticket_id: r.rank for r in faiss_results}
+    bm25_score_map: dict[str, float] = {r.ticket_id: r.score for r in bm25_results}
+    bm25_rank_map: dict[str, int] = {r.ticket_id: r.rank for r in bm25_results}
+
+    faiss_ids = set(faiss_cosine)
+    bm25_ids = set(bm25_score_map)
+
     # ── RRF fusion ───────────────────────────────────────────────────────────
     fused = reciprocal_rank_fusion(
         faiss_results,
@@ -156,13 +170,19 @@ def hybrid_retrieve(
         bm25_weight=bm25_weight,
     )
 
-    # Build a ticket_id -> cosine similarity lookup from FAISS results only.
-    # BM25 scores are unbounded and cannot be compared against the 0.45 threshold.
-    faiss_cosine: dict[str, float] = {r.ticket_id: r.score for r in faiss_results}
-
     # Convert to RetrievedIncident (the interface the reranker expects).
     incidents: list[RetrievedIncident] = []
     for rank, (tid, rrf_score, hit) in enumerate(fused[:top_k], start=1):
+        # Determine match type
+        in_faiss = tid in faiss_ids
+        in_bm25 = tid in bm25_ids
+        if in_faiss and in_bm25:
+            match_type = "semantic+keyword"
+        elif in_bm25:
+            match_type = "keyword"
+        else:
+            match_type = "semantic"
+
         incidents.append(
             RetrievedIncident(
                 rank=rank,
@@ -173,7 +193,15 @@ def hybrid_retrieve(
                 root_cause=hit.root_cause,
                 resolution_status=hit.resolution_status,
                 resolution_notes=hit.resolution_notes,
-                similarity=faiss_cosine.get(tid, 0.0),  # cosine sim; 0.0 for BM25-only hits
+                # FAISS cosine: None for BM25-only hits (not 0.0)
+                similarity=faiss_cosine.get(tid),
+                # Retrieval metadata
+                bm25_score=bm25_score_map.get(tid),
+                rrf_score=round(rrf_score, 6),
+                faiss_rank=faiss_rank_map.get(tid),
+                bm25_rank=bm25_rank_map.get(tid),
+                match_type=match_type,
+                hybrid_rank=rank,
             )
         )
 

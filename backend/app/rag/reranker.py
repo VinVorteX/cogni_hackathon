@@ -98,7 +98,13 @@ def _coverage(query_terms: set[str], candidate_terms: set[str]) -> float:
 
 @dataclass
 class RerankedIncident:
-    """A reranked hit, carrying the composite score and its explainable parts."""
+    """A reranked hit, carrying the composite score and its explainable parts.
+
+    Retrieval metadata from the hybrid retriever (``bm25_score``,
+    ``rrf_score``, ``faiss_rank``, ``bm25_rank``, ``match_type``,
+    ``hybrid_rank``) is preserved verbatim — the reranker never overwrites
+    or recalculates these upstream scores.
+    """
 
     rank: int
     ticket_id: str
@@ -108,11 +114,19 @@ class RerankedIncident:
     root_cause: str
     resolution_status: str
     resolution_notes: str
-    similarity: float          # original FAISS cosine (the semantic signal)
+    similarity: float | None   # original FAISS cosine (None for BM25-only)
     keyword_overlap: float
     technical_overlap: float
     rerank_score: float        # final weighted blend
     matched_technical: list[str]
+
+    # ── Preserved hybrid retrieval metadata ──────────────────────────────────
+    bm25_score: float | None = None
+    rrf_score: float | None = None
+    faiss_rank: int | None = None
+    bm25_rank: int | None = None
+    match_type: str = "semantic"
+    hybrid_rank: int = 0
 
     @property
     def resolution(self) -> str:
@@ -155,7 +169,7 @@ def rerank(
 
         keyword_overlap = _coverage(query_keywords, cand_keywords)
         technical_overlap = _coverage(query_technical, cand_technical)
-        semantic = float(cand.similarity)
+        semantic = float(cand.similarity) if cand.similarity is not None else 0.0
 
         score = (
             W_SEMANTIC * semantic
@@ -173,16 +187,26 @@ def rerank(
                 root_cause=cand.root_cause,
                 resolution_status=cand.resolution_status,
                 resolution_notes=cand.resolution_notes,
-                similarity=semantic,
+                similarity=cand.similarity,  # preserve None for BM25-only
                 keyword_overlap=keyword_overlap,
                 technical_overlap=technical_overlap,
                 rerank_score=score,
                 matched_technical=sorted(query_technical & cand_technical),
+                # Pass through retrieval metadata verbatim
+                bm25_score=cand.bm25_score,
+                rrf_score=cand.rrf_score,
+                faiss_rank=cand.faiss_rank,
+                bm25_rank=cand.bm25_rank,
+                match_type=cand.match_type,
+                hybrid_rank=cand.hybrid_rank,
             )
         )
 
     # Sort by composite score (desc); ties broken by original FAISS similarity.
-    reranked.sort(key=lambda r: (r.rerank_score, r.similarity), reverse=True)
+    reranked.sort(
+        key=lambda r: (r.rerank_score, r.similarity if r.similarity is not None else 0.0),
+        reverse=True,
+    )
     top = reranked[:top_k]
     for new_rank, item in enumerate(top, start=1):
         item.rank = new_rank

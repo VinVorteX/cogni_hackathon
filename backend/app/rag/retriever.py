@@ -39,7 +39,13 @@ class RetrievalError(RuntimeError):
 
 @dataclass
 class RetrievedIncident:
-    """A historical incident returned by retrieval, with its similarity score."""
+    """A historical incident returned by retrieval, with its similarity score.
+
+    Retrieval metadata (``bm25_score``, ``rrf_score``, ``faiss_rank``,
+    ``bm25_rank``, ``match_type``, ``hybrid_rank``) is populated by the hybrid
+    retriever and preserved through reranking so the API can surface exactly
+    how each result was found.
+    """
 
     rank: int
     ticket_id: str
@@ -49,7 +55,15 @@ class RetrievedIncident:
     root_cause: str
     resolution_status: str
     resolution_notes: str
-    similarity: float
+    similarity: float | None  # FAISS cosine; None for BM25-only hits
+
+    # ── Hybrid retrieval metadata (populated by hybrid_retriever) ────────────
+    bm25_score: float | None = None
+    rrf_score: float | None = None
+    faiss_rank: int | None = None
+    bm25_rank: int | None = None
+    match_type: str = "semantic"      # "semantic" | "keyword" | "semantic+keyword"
+    hybrid_rank: int = 0              # final RRF-fused position (1-based)
 
     @property
     def resolution(self) -> str:
@@ -171,13 +185,18 @@ def retrieve_similar_incidents(
             resolution_status=hit.resolution_status,
             resolution_notes=hit.resolution_notes,
             similarity=hit.score,
+            faiss_rank=hit.rank,
+            match_type="semantic",
         )
         for hit in hits
     ]
 
     # FAISS already returns hits sorted by descending similarity; sort again
     # defensively so the ordering contract holds regardless of backend.
-    incidents.sort(key=lambda inc: inc.similarity, reverse=True)
+    incidents.sort(
+        key=lambda inc: inc.similarity if inc.similarity is not None else 0.0,
+        reverse=True,
+    )
     for new_rank, inc in enumerate(incidents, start=1):
         inc.rank = new_rank
 

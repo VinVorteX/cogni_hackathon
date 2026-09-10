@@ -15,13 +15,24 @@ logger = get_logger(__name__)
 
 
 def _to_similar(item) -> SimilarIncident:
-    """Map a reranked evidence item to the API ``SimilarIncident`` model."""
+    """Map a reranked evidence item to the API ``SimilarIncident`` model.
+
+    Retrieval metadata (FAISS/BM25 scores, per-source ranks, match type) is
+    passed through verbatim from the hybrid retriever — this function never
+    overwrites or recalculates upstream scores.
+    """
     return SimilarIncident(
         ticket_id=item.ticket_id,
-        similarity=round(float(item.similarity), 4),
+        similarity=round(float(item.similarity), 4) if item.similarity is not None else None,
         description=item.description,
         root_cause=item.root_cause,
         resolution=item.resolution,
+        match_type=getattr(item, "match_type", "semantic"),
+        hybrid_rank=getattr(item, "hybrid_rank", 0),
+        bm25_score=round(float(item.bm25_score), 4) if getattr(item, "bm25_score", None) is not None else None,
+        rrf_score=round(float(item.rrf_score), 6) if getattr(item, "rrf_score", None) is not None else None,
+        faiss_rank=getattr(item, "faiss_rank", None),
+        bm25_rank=getattr(item, "bm25_rank", None),
     )
 
 

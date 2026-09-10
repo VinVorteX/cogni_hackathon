@@ -50,7 +50,7 @@ class EvidenceIncident(Protocol):
     description: str
     root_cause: str
     resolution_notes: str
-    similarity: float
+    similarity: float | None
 
 
 SYSTEM_PROMPT = f"""You are an Incident Root Cause Analysis assistant for support engineers.
@@ -106,7 +106,9 @@ def build_user_prompt(
                 [
                     "",
                     f"### Evidence {i} — Ticket {inc.ticket_id} "
-                    f"(similarity {inc.similarity:.3f})",
+                    f"(similarity {inc.similarity:.3f})" if inc.similarity is not None
+                    else f"### Evidence {i} — Ticket {inc.ticket_id} "
+                    f"(similarity N/A — keyword match only)",
                     f"Description: {_clip(inc.description, MAX_DESCRIPTION_CHARS)}",
                     "Historical root cause: "
                     f"{_clip(inc.root_cause, MAX_ROOT_CAUSE_CHARS)}",

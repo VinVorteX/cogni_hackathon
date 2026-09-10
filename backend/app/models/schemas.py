@@ -73,13 +73,42 @@ class AnalyzeRequest(BaseModel):
 
 
 class SimilarIncident(BaseModel):
-    """A historical incident surfaced during retrieval, with its similarity."""
+    """A historical incident surfaced during retrieval, with retrieval metadata."""
 
     ticket_id: str
-    similarity: float = Field(description="Cosine similarity from the vector search.")
+    similarity: float | None = Field(
+        default=None,
+        description="FAISS cosine similarity (null for BM25-only hits).",
+    )
     description: str
     root_cause: str
     resolution: str
+
+    # ── Hybrid retrieval metadata ────────────────────────────────────────────
+    match_type: str = Field(
+        default="semantic",
+        description="How this result was found: 'semantic', 'keyword', or 'semantic+keyword'.",
+    )
+    hybrid_rank: int = Field(
+        default=0,
+        description="Final position after RRF fusion (1-based).",
+    )
+    bm25_score: float | None = Field(
+        default=None,
+        description="BM25 score (null if not retrieved by BM25).",
+    )
+    rrf_score: float | None = Field(
+        default=None,
+        description="Reciprocal Rank Fusion score.",
+    )
+    faiss_rank: int | None = Field(
+        default=None,
+        description="Rank from FAISS semantic search (null if BM25-only).",
+    )
+    bm25_rank: int | None = Field(
+        default=None,
+        description="Rank from BM25 keyword search (null if FAISS-only).",
+    )
 
 
 class AnalyzeResponse(BaseModel):
