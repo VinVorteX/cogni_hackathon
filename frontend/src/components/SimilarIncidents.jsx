@@ -58,13 +58,13 @@ function SkeletonList() {
   return (
     <div className="space-y-3">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="animate-pulse rounded-lg border border-slate-200 p-4">
+        <div key={i} className="animate-pulse rounded-lg border border-[#30363d] p-4">
           <div className="mb-3 flex items-center justify-between">
-            <div className="h-4 w-28 rounded bg-slate-200" />
-            <div className="h-1.5 w-24 rounded-full bg-slate-100" />
+            <div className="h-4 w-28 rounded bg-[#21262d]" />
+            <div className="h-1.5 w-24 rounded-full bg-[#21262d]" />
           </div>
-          <div className="h-3 w-full rounded bg-slate-100" />
-          <div className="mt-1.5 h-3 w-2/3 rounded bg-slate-100" />
+          <div className="h-2 w-full rounded bg-[#21262d]" />
+          <div className="mt-1.5 h-2 w-2/3 rounded bg-[#21262d]" />
         </div>
       ))}
     </div>

@@ -75,8 +75,8 @@ a stable contract.
 Backend settings (Pydantic) via `backend/.env` — see `backend/.env.example`:
 
 - `GROQ_API_KEY` (required for RCA) — **never committed**
-- `GROQ_MODEL` (default `openai/gpt-oss-120b`)
-- `GROQ_MAX_RETRIES` (default `6`) — rides out free-tier 429 rate limits
+- `GROQ_MODEL` (default `openai/gpt-oss-20b`)
+- `GROQ_MAX_RETRIES` (default `2`)
 - `EMBEDDING_MODEL` (default `sentence-transformers/all-MiniLM-L6-v2`)
 - `JWT_SECRET` (**override in production**) — signs auth tokens
 - `DATABASE_URL` (optional) — SQLAlchemy URL for user store; unset → SQLite
@@ -125,8 +125,6 @@ definitions.
 - **Frontend:** https://incident-rca-frontend-719419392728.us-central1.run.app
 - **Backend API:** https://incident-rca-api-thamtf7d5a-uc.a.run.app
 - Both deployed on **Google Cloud Run** (auto-scales to zero).
-- CI/CD via **GitHub Actions** (`.github/workflows/`) — pushes to `main` that
-  touch `backend/` or `frontend/` trigger automatic redeployment.
 
 ## Docs
 

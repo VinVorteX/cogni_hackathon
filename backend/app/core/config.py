@@ -60,13 +60,11 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     # Override via GROQ_MODEL. Must be a chat model your key can access
     # (e.g. openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.6-27b).
-    groq_model: str = "openai/gpt-oss-120b"
+    groq_model: str = "openai/gpt-oss-20b"
     llm_temperature: float = 0.0
-    # How many times to retry a Groq call on transient failures (notably HTTP
-    # 429 rate limits on the free tier). The client backs off per the server's
-    # Retry-After, so a burst of requests rides out the per-minute window
-    # instead of hard-failing.
-    groq_max_retries: int = 6
+    # Keep retries low — on the free tier each 429 retry waits the full
+    # Retry-After window (up to 60 s), so 6 retries = potential 6-minute hang.
+    groq_max_retries: int = 2
 
     # ---- Embeddings (reserved for a later RAG stage; not used yet) ----
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
